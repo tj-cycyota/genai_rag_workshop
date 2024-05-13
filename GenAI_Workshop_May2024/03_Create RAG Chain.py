@@ -199,13 +199,9 @@ answer = chain.run(question) # Same question
 # MAGIC %md
 # MAGIC ## 4. Log the Chain to Unity Catalog via MLflow
 # MAGIC
-# MAGIC Now we have a working RAG Chain. But to use it as a real-time chatbot, we need to move beyond testing in a notebook. 
+# MAGIC Now we have a working RAG Chain. But to use it to perform batch inference or as a real-time chatbot, we need to move beyond testing in a notebook. 
 # MAGIC
-# MAGIC Databricks Model Serving allows us to deploy custom applications to a serverless endpoint that we can call as a REST API. Read more about it here: [Model serving with Databricks](https://docs.databricks.com/en/machine-learning/model-serving/index.html)
-# MAGIC
-# MAGIC To deploy our model to a scalable service to support external API calls, we will do 2 things:
-# MAGIC 1. Log the Model to MLflow
-# MAGIC 2. Deploy the logged model to Model Serving
+# MAGIC To deploy our model to a scalable service to support external API calls, we will log the Model to MLflow. To learn more about LLM's and MLflow, see the [MLflow Documentation for LLMs](https://mlflow.org/docs/latest/llms/index.html), as well as the [MLflow LangChain flavor](https://mlflow.org/docs/latest/llms/langchain/index.html).
 
 # COMMAND ----------
 
@@ -213,6 +209,7 @@ from mlflow.models import infer_signature
 import mlflow
 import langchain
 
+# Set the MLflow registry to use Unity Catalog
 mlflow.set_registry_uri("databricks-uc")
 model_name = f"{catalog_name}.{schema_name}.product_manual_chatbot"
 print(f"Logging model to UC location: {model_name}")
@@ -221,7 +218,7 @@ with mlflow.start_run(run_name="product_manual_chatbot") as run:
     signature = infer_signature(question, answer)
     model_info = mlflow.langchain.log_model(
         chain,
-        loader_fn=get_retriever,  # Load the retriever with DATABRICKS_TOKEN env as secret (for authentication).
+        loader_fn=get_retriever,
         artifact_path="chain",
         registered_model_name=model_name,
         pip_requirements=[
@@ -258,6 +255,7 @@ df = pd.DataFrame({"query": [
   "What are the component parts of Model 1400B?"
   ]})
 
+# Call predict() method to get a new prediction
 df["response"] = loaded_chain.predict(df)
 display(df)
 
@@ -266,7 +264,24 @@ display(df)
 # MAGIC %md
 # MAGIC ## 6. Deploy this Chain to a model serving endpoint
 # MAGIC
+# MAGIC Databricks Model Serving allows us to deploy custom applications to a serverless endpoint that we can call as a REST API. Read more about it here: [Model serving with Databricks](https://docs.databricks.com/en/machine-learning/model-serving/index.html)
+# MAGIC
 # MAGIC Before we deploy this model to model serving, we need to create a databricks secret so the Model Serving Endpoint can call back to the Vector Search Index we deployed. We'll use [Databricks Secrets](https://docs.databricks.com/en/security/secrets/secrets.html) for this process to avoid showing plain-text tokens.
+
+# COMMAND ----------
+
+# Change the Secret Scope name if needed
+scope_name = current_user_safe+"_scope"
+workspaceUrl = os.environ["DATABRICKS_HOST"]
+databricks_token = os.environ["DATABRICKS_TOKEN"]
+
+# See init notebook for supporting code
+create_secrets(scope_name, workspaceUrl, databricks_token)
+
+# We need 4 curly brackets due to use of Python f-strings
+secret_host = f"{{{{secrets/{scope_name}/databricks_host}}}}"
+secret_token = f"{{{{secrets/{scope_name}/databricks_token}}}}"
+print(f"String env vars: {secret_host}, {secret_token}")
 
 # COMMAND ----------
 
@@ -286,20 +301,6 @@ display(df)
 # MAGIC ### Deploy via Python SDK
 # MAGIC
 # MAGIC Before we deploy this model to model serving, we need to create a databricks secret so the Model Serving Endpoint can call back to the Vector Search Index we deployed. We'll use [Databricks Secrets](https://docs.databricks.com/en/security/secrets/secrets.html) for this process to avoid showing plain-text tokens.
-
-# COMMAND ----------
-
-# Change the Secret Scope name if needed
-scope_name = current_user_safe+"_scope"
-workspaceUrl = os.environ["DATABRICKS_HOST"]
-databricks_token = os.environ["DATABRICKS_TOKEN"]
-
-create_secrets(scope_name, workspaceUrl, databricks_token)
-
-# We need 4 curly brackets due to use of Python f-strings
-secret_host = f"{{{{secrets/{scope_name}/databricks_host}}}}"
-secret_token = f"{{{{secrets/{scope_name}/databricks_token}}}}"
-print(f"String env vars: {secret_host}, {secret_token}")
 
 # COMMAND ----------
 
