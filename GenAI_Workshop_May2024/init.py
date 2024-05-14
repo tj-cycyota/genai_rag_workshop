@@ -1,4 +1,10 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC # Init notebook
+# MAGIC This notebook initializes variables and UC locations for our RAG application. While it is recommended to implement config-driven applications, much of the code and helper functions here are for learning purposes to allow simple learning setups. 
+
+# COMMAND ----------
+
 # Setup Catalog+Schema
 dbutils.widgets.text("catalog_name","main")
 
@@ -74,7 +80,7 @@ def wait_for_index_to_be_ready(vsc, vs_endpoint_name, index_name):
       return
     elif "PROVISIONING" in status:
       if i % 40 == 0: print(f"Waiting for index to be ready, this can take a few min... {index_status} - pipeline url:{url}")
-      time.sleep(10)
+      time.sleep(20)
     else:
         raise Exception(f'''Error with the index - this shouldn't happen. DLT pipeline might have been killed.\n Please delete it and re-run the previous cell: vsc.delete_index("{index_name}, {vs_endpoint_name}") \nIndex details: {idx}''')
   raise Exception(f"Timeout, your index isn't ready yet: {vsc.get_index(index_name, vs_endpoint_name)}")
