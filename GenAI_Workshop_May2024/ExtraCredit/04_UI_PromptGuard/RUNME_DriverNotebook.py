@@ -37,23 +37,7 @@ dbtunnel.chainlit(script_path).inject_auth().run()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Search the cell above for `Use this link to access` to get the unique URL where your chatbot UI is hosted.
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Host application publicly on the internet (proxy server in backend)
-
-# COMMAND ----------
-
-# (
-#   dbtunnel.chainlit(script_path, cwd=current_directory)
-#   .inject_auth()
-# .share_to_internet(
-#   app_name="databricks-demo",
-#   app_host="dbtunnel.app",
-#   tunnel_host="proxy.dbtunnel.app"
-# ).run())
+# MAGIC Search the cell above for `Use this link to access` to get the unique URL where your chatbot UI is hosted. Open that link in a new browser tab for a simple chatbot UI to test your chatbot and see how the chain is executed. Try asking some of the questions we used in earlier parts of our lab to test the performance of the chatbot, such as `What is the expected accuracy of the thermocouples in the sensor?`
 
 # COMMAND ----------
 

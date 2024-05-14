@@ -15,19 +15,19 @@
 # MAGIC
 # MAGIC In this notebook, we will:
 # MAGIC
-# MAGIC 1. Import simple LangChain components for:
-# MAGIC     * [DatabricksVectorSearch](https://python.langchain.com/v0.1/docs/integrations/vectorstores/databricks_vector_search/): used to retrieve documents from our Vector Search Index from Step2
+# MAGIC 1. **Import LangChain components** for:
+# MAGIC     * [DatabricksVectorSearch](https://python.langchain.com/v0.1/docs/integrations/vectorstores/databricks_vector_search/): used to retrieve documents from our Vector Search Index from `Step 02`
 # MAGIC     * [DatabricksLLM](https://python.langchain.com/v0.1/docs/integrations/llms/databricks/): our actual large language model that receives an enriched prompt (with our retrieved documents) to answer a user's question
 # MAGIC
-# MAGIC 2. Build these components into a RAG Chain
+# MAGIC 2. **Build these components into a RAG Chain**
 # MAGIC
-# MAGIC 3. Test the Chain in a Databricks Notebook
+# MAGIC 3. **Test the Chain** in a Databricks Notebook
 # MAGIC
-# MAGIC 4. Log the Chain to Unity Catalog via MLflow
+# MAGIC 4. **Log the Chain to Unity Catalog** via MLflow
 # MAGIC
-# MAGIC 5. Load the Chain and perform Batch Inference
+# MAGIC 5. **Load the Chain** and perform Batch Inference
 # MAGIC
-# MAGIC 6. Deploy this Chain to a model serving endpoint for real-time requests
+# MAGIC 6. **Deploy this Chain** to a model serving endpoint for real-time requests
 
 # COMMAND ----------
 
@@ -82,7 +82,7 @@ os.environ['DATABRICKS_TOKEN'] = dbutils.notebook.entry_point.getDbutils().noteb
 # MAGIC
 # MAGIC For RAG applications, it is common to create a `get_retriever()` function that is used to retrieve documents from a vector search database. 
 # MAGIC
-# MAGIC Notice how we do **not** need to specify the embedding model to use, as our Vector Search index was created with one. This is the simplicity of Databricks-managed embeddings in Vector Search - the client application (e.g. our LangChain) does not need to perform embeddings!
+# MAGIC Notice how we do **not** need to specify the embedding model to use, as our Vector Search index was created with one. This is the simplicity of Databricks-managed embeddings in Vector Search - the client application (e.g. our LangChain application) does not need to perform embeddings!
 
 # COMMAND ----------
 
@@ -123,7 +123,7 @@ print(f"Relevant documents: {similar_documents[0]}")
 
 # COMMAND ----------
 
-chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens = 200)
+chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens = 500)
 
 print(f"Test chat results: \n {chat_model.predict('What is Apache Spark')}")
 
@@ -192,14 +192,14 @@ answer = chain.run(question) # Same question
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Take a look at the above, and see how the original user's question is enriched with retrieved information before being sent to the LLM. 
+# MAGIC Take a look at the above (the debug thread is read from top to bottom), and see how the original user's question is enriched with retrieved information before being sent to the LLM. 
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## 4. Log the Chain to Unity Catalog via MLflow
 # MAGIC
-# MAGIC Now we have a working RAG Chain. But to use it to perform batch inference or as a real-time chatbot, we need to move beyond testing in a notebook. 
+# MAGIC Congrats - now we have a working RAG Chain! But to use it to perform batch inference or as a real-time chatbot, we need to move beyond testing in a notebook. 
 # MAGIC
 # MAGIC To deploy our model to a scalable service to support external API calls, we will log the Model to MLflow. To learn more about LLM's and MLflow, see the [MLflow Documentation for LLMs](https://mlflow.org/docs/latest/llms/index.html), as well as the [MLflow LangChain flavor](https://mlflow.org/docs/latest/llms/langchain/index.html).
 
@@ -291,16 +291,24 @@ print(f"String env vars: {secret_host}, {secret_token}")
 # MAGIC To deploy our RAG Chain via UI:
 # MAGIC * On the left-nav, click `Serving` then `Create serving endpoint`
 # MAGIC * Name: choose a model serving name
-# MAGIC * Entity: navigate to the UC model you logged (printed out above), then click Confirm
+# MAGIC * Entity: navigate to the UC model you logged (printed out at the end of Step 4), then click Confirm
 # MAGIC * Select Compute scale-out as `Small` and enable `Scale to zero`
+# MAGIC * Under `Advanced Configuration`, add 2 environment variables:
+# MAGIC   * `DATABRICKS_HOST` : <`secret_host` value printed above, of form `{{secrets/labu..._scope/databricks_host}}`>
+# MAGIC   * `DATABRICKS_TOKEN` : <`secret_token` value printed above, of form `{{secrets/labu..._scope/databricks_host}}`>
 # MAGIC * (Optional) If you want to see every request to the endpoint, enable `Inference tables`
+# MAGIC * Click `Create` button at bottom-right
+# MAGIC
+# MAGIC The model serving endpoint will take several minutes to be ready.
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### Deploy via Python SDK
+# MAGIC `You can skip this step if you created the index in the UI`
 # MAGIC
-# MAGIC Before we deploy this model to model serving, we need to create a databricks secret so the Model Serving Endpoint can call back to the Vector Search Index we deployed. We'll use [Databricks Secrets](https://docs.databricks.com/en/security/secrets/secrets.html) for this process to avoid showing plain-text tokens.
+# MAGIC The code below deploys our RAG Chain to Model Serving using the Python SDK. For CICD and MLOps processes, we always want to programmatically deploy to production, and the SDK and other "outer dev-loop" tools in Databricks are recommended for this. 
+# MAGIC
 
 # COMMAND ----------
 
@@ -333,6 +341,7 @@ endpoint_config = EndpointCoreConfigInput(
     ]
 )
 
+# The code below will determine if our endpoint is already created, and if not, creates it
 existing_endpoint = next(
     (e for e in w.serving_endpoints.list() if e.name == serving_endpoint_name), None
 )
@@ -356,5 +365,11 @@ displayHTML(f'Your Model Endpoint Serving is now available. Open the <a href="/m
 # MAGIC When the endpoint is ready, click to it then `Query Endpoint` with `Sample Request` - feel free to make sure this matches the results you're seeing here in the notebook. 
 # MAGIC
 # MAGIC The important part is that external clients (e.g your custom chatbot front-end) can make REST API requests to this to serve chat applications. 
+# MAGIC
+# MAGIC **Have extra time?**
+# MAGIC * Try adding a few more PDFs for important parts or products (text-based)
+# MAGIC * Try modifying the chunking code in `Lab 02` to handle tables or complex documents
+# MAGIC * Try modifying the Prompt to handle conversation history
+# MAGIC * Review an advanced demo: [Deploy Your LLM Chatbot With Retrieval Augmented Generation (RAG), DBRX Instruct Foundation Models and Vector Search](https://www.databricks.com/resources/demos/tutorials/data-science-and-ai/lakehouse-ai-deploy-your-llm-chatbot)
 # MAGIC
 # MAGIC Congrats - you've built a RAG chatbot from scratch!

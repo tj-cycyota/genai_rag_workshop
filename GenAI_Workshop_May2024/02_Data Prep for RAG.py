@@ -11,10 +11,10 @@
 # MAGIC # LAB 2. Data Prep for Retrieval Augmented Generation
 # MAGIC **Databricks GenAI Workshop 2024**
 # MAGIC
-# MAGIC In this notebook we will prepare a PDF document for Vector Search. 
+# MAGIC In this notebook we will prepare a PDF document for Vector Search, which will allow us to retrieve relevant documents for a RAG application.
 # MAGIC
-# MAGIC We'll apply this technique on a mostly text-bases PDF related to technical product manuals to demonstrate the end-to-end processing steps from:
-# MAGIC 1. **Load** a document to a [UC Volume](https://docs.databricks.com/en/connect/unity-catalog/volumes.html). Normally, you would perform a batch or real-time process to move relevant documents (PDFs, HTMLs, XMLs, etc.) from an internal storage location into a Volume, but we'll do a simple UI-based workflow as well as programmatically retrieving public documents. 
+# MAGIC We'll apply this technique on a mostly text-based PDF related to technical product manuals to demonstrate the end-to-end processing steps:
+# MAGIC 1. **Load** a document to a [UC Volume](https://docs.databricks.com/en/connect/unity-catalog/volumes.html). Normally, you would perform a batch or real-time process to move relevant documents (PDFs, HTMLs, XMLs, etc.) from an internal storage location into a Volume, but we'll do a simple UI-based workflow as well as programmatically retrieve public documents. 
 # MAGIC
 # MAGIC 2. **Extract** information from the PDF. We will use [pypdf](https://pypdf.readthedocs.io/en/stable/index.html) for this simple text-based example, but there are many other open-source and proprietary document-to-text options. 
 # MAGIC
@@ -22,15 +22,9 @@
 # MAGIC
 # MAGIC 4. **Write** chunked data to a Delta table. We will do a one-time load of PDFs, but with [AutoLoader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html), you can automate this process to always watch for newly-arriving files. 
 # MAGIC
-# MAGIC 5. **Synchronize** your "offline" Delta table with an "online" (Vector Search Index)[] that we will use for retrieval for a RAG application.
+# MAGIC 5. **Synchronize** your "offline" Delta table with an "online" (Vector Search Index)[https://docs.databricks.com/en/generative-ai/vector-search.html] that we will use for retrieval for a RAG application.
 # MAGIC
-# MAGIC 6. **Similarity Search** for documents based on a plain-English question. 
-
-# COMMAND ----------
-
-displayHTML("""
-<div style="width: 100%; display: flex; justify-content: center;"> <div style="width: 180px; padding: 10px; border: 1px solid black; margin-right: 20px; text-align: center;"> 1. Load documents to UC Volume </div> <div style="width: 20px;"> → </div> <div style="width: 180px; padding: 10px; border: 1px solid black; margin-right: 20px; text-align: center;"> 2. Extract text from PDFs using pypdf </div> <div style="width: 20px;"> → </div> <div style="width: 180px; padding: 10px; border: 1px solid black; margin-right: 20px; text-align: center;"> 3. Split documents into chunks using LangChain Splitter </div> <div style="width: 20px;"> → </div> <div style="width: 180px; padding: 10px; border: 1px solid black; margin-right: 20px; text-align: center;"> 4. Write chunked data to Delta table  </div> <div style="width: 20px;"> → </div> <div style="width: 180px; padding: 10px; border: 1px solid black; text-align: center;"> 5. Synchronize Delta table with Vector Search Index for RAG </div> </div> 
-""")
+# MAGIC 6. **Similarity Search** for documents based on a plain-English question to validate our implementation works!
 
 # COMMAND ----------
 
@@ -119,7 +113,7 @@ print(f"Documents will be put in UC at: {volume_location}")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Before proceeding: When you run the cell below, you should see (at least) 1 PDF file in your volume: 
+# MAGIC Before proceeding: When you run the cell below, you should see (at least) 1 PDF file in your volume. If not, please follow the instructions above to place the PDF file in the UC Volume.
 
 # COMMAND ----------
 
@@ -201,6 +195,8 @@ display(parsed_df)
 # MAGIC
 # MAGIC This is a relatively short document (2 printed pages), so its not too long, but imagine if it were dozens or hundreds of pages long: it would be effectively unusable by an LLM, as every LLM has a maximum input length, and it is challenging for large language models to provide satisfactory responses when the prompt is too long. 
 # MAGIC
+# MAGIC So what should we do? **Chunk our documents**! This means splitting large blobs of text into shorter sections, which are usable by an LLM for question-answering. This approach is applicable to all kinds of documents (not just text-based ones): you can chunk large reference tables, mechanical diagrams, or really any kind of information you would find in a reference document. For our example, we'll stick with a straightforward approach and just break our big blob of text into smaller chunks, with some overlap between them. 
+# MAGIC
 # MAGIC In the cell below, try changing the first two variables to see how they affect the output dataframe. What settings make chunks that are too small? Too big? That are too "redundant" between them? There's no "right" answer here, so feel free to pick settings that make sense to you!
 
 # COMMAND ----------
@@ -253,7 +249,7 @@ display(chunked_df)
 # MAGIC ### Experiment with Chunking Strategy
 # MAGIC Now go back and change the number of tokens per chunk, and chunk overlap. 
 # MAGIC
-# MAGIC How does that effect:
+# MAGIC How does that affect:
 # MAGIC * Number of rows ("chunks") in your resulting table? 
 # MAGIC * Length in words of each chunk? Why is the number of words different than the `chunk_size_tokens` setting? Is there a relationship between a word and a token? 
 # MAGIC * The "usefulness" of each chunk? Review the text of some of them. Are they too small to contain the useful information? Or too long that they're overly dense?
@@ -276,6 +272,7 @@ print(f"Saving data to UC table: {full_table_location}")
 
 chunked_df.write.format("delta").mode("overwrite").saveAsTable(full_table_location)
 
+# We need to enable Change Data Feed on our Delta table to use it for Vector Search
 spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")
 
 # COMMAND ----------
@@ -292,6 +289,7 @@ spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableCha
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### Setup via UI
 # MAGIC You can perform this step from the UI: 
 # MAGIC
 # MAGIC 1. Navigate on the left side to Catalog > {your workshop catalog+schema} > Tables
@@ -316,13 +314,16 @@ spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableCha
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Setting up Vector Search Index programmatically.
+# MAGIC ### Setup Vector Search Index programmatically.
+# MAGIC `You can skip this step if you created the index in the UI`
 # MAGIC
 # MAGIC The below code completes two steps: 
 # MAGIC 1. Sets up a Vector Search **Endpoint**. This is the **compute** that hosts your index, and an endpoint can host multiple indices
 # MAGIC 2. Sets up a Vector Search **Index**. This is the **online replica** of your Delta table we will use in our RAG application
 # MAGIC
 # MAGIC Full documentation: [Create index using the Python SDK](https://docs.databricks.com/en/generative-ai/create-query-vector-search.html#create-index-using-the-python-sdk)
+# MAGIC
+# MAGIC **NOTE**: The cell below should run in 5-10 minutes, and will show as completed when the Endpoint is ready.
 
 # COMMAND ----------
 
@@ -342,6 +343,20 @@ if vs_endpoint not in [e['name'] for e in vsc.list_endpoints().get('endpoints', 
 
 wait_for_vs_endpoint_to_be_ready(vsc, vs_endpoint)
 print(f"Endpoint named {vs_endpoint} is ready.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC **NOTE**: If you get an error above indicating that the workspace has too many endpoints, you should re-use an existing one that has open capacity (e.g. where # of indexes is less than `20`):
+# MAGIC
+# MAGIC * In the left-nav, go to `Compute` > `Vector Search`
+# MAGIC * Find an Endpoint with open capacity. Copy the name of that Endpoint.
+# MAGIC * In the cell above, replace the variable `vs_endpoint` with what you copied and re-run the cell.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC **NOTE**: The cell below should run in 5-10 minutes, and will show as completed when the Index is ready.
 
 # COMMAND ----------
 
@@ -399,3 +414,5 @@ docs
 # MAGIC Take a look at the results, as well as the original document. Does the top-ranked result contain the answer to this question? Would you, as an expert technician, be able to answer the question given this extra information? Test num_results and see if multiple chunks contain this answer.
 # MAGIC
 # MAGIC Now that we've setup our data to be used in **retrieval augmented generation**, we can move on to build our question-answering chatbot in the next lab!
+# MAGIC
+# MAGIC **NOTE**: Make sure the steps above completed successfully, as they are needed in the next part of the lab!
