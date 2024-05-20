@@ -39,7 +39,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U --quiet mlflow langchain databricks-vectorsearch databricks-sdk mlflow[databricks]
+# MAGIC %pip install -U --quiet mlflow langchain==0.2.0 langchain-community==0.2.0 databricks-vectorsearch databricks-sdk mlflow[databricks]
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -262,6 +262,17 @@ display(df)
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC Fantastic! Our model is providing responses using the information contained in the Vector Search index. 
+# MAGIC
+# MAGIC While this was a quick qualitative evaluation of our model's performance and readiness for deployment, of course in a production setting we need more rigorous, quantitative ways to evaluate quality. 
+# MAGIC
+# MAGIC This is where [MLflow Evaluate]() comes in! To see examples of this in practice, navigate to:
+# MAGIC * (this repo) `ExtraCredit` > `Evaluation Strategies...` notebook
+# MAGIC * (advanced) DBDemos [Deploy Your LLM Chatbot...](https://www.databricks.com/resources/demos/tutorials/data-science-and-ai/lakehouse-ai-deploy-your-llm-chatbot?itm_data=demo_center) > `02-advanced` > `03-Offline-Evaluation` and `05-Inference-Tables...` 
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## 6. Deploy this Chain to a model serving endpoint
 # MAGIC
 # MAGIC Databricks Model Serving allows us to deploy custom applications to a serverless endpoint that we can call as a REST API. Read more about it here: [Model serving with Databricks](https://docs.databricks.com/en/machine-learning/model-serving/index.html)
@@ -367,6 +378,7 @@ displayHTML(f'Your Model Endpoint Serving is now available. Open the <a href="/m
 # MAGIC The important part is that external clients (e.g your custom chatbot front-end) can make REST API requests to this to serve chat applications. 
 # MAGIC
 # MAGIC **Have extra time?**
+# MAGIC * Review the `Evaluation_Strategies` noebook in the `ExtraCredit` folder
 # MAGIC * Try adding a few more PDFs for important parts or products (text-based)
 # MAGIC * Try modifying the chunking code in `Lab 02` to handle tables or complex documents
 # MAGIC * Try modifying the Prompt to handle conversation history
