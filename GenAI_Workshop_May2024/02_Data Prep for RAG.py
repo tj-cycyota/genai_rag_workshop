@@ -416,3 +416,6 @@ docs
 # MAGIC Now that we've setup our data to be used in **retrieval augmented generation**, we can move on to build our question-answering chatbot in the next lab!
 # MAGIC
 # MAGIC **NOTE**: Make sure the steps above completed successfully, as they are needed in the next part of the lab!
+# MAGIC
+# MAGIC **Have extra time?**
+# MAGIC * Review the `Chunking_Strategies` noebook in the `ExtraCredit` folder
