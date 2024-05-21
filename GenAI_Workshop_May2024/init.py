@@ -106,11 +106,25 @@ def create_secrets(scope_name, workspaceUrl, databricks_token):
   import requests, json
   headers = {'Authorization': f'Bearer {databricks_token}', 'Content-Type': 'application/json'}
 
+  payload_host = {
+          "scope": scope_name,
+          "key": "databricks_host",
+          "string_value": workspaceUrl
+      }
+  payload_token = {
+            "scope": scope_name,
+            "key": "databricks_token",
+            "string_value": databricks_token
+      }
+
   # Check if secret scope already exists, otherwise create it
   try:
     response = requests.get(f'{workspaceUrl}/api/2.0/secrets/list?scope={scope_name}', headers=headers)
     if response.status_code == 200:
-      print(f"Secrets at scope: {scope_name}")
+      # Reset host and token at scope
+      response_host = requests.post(f'{workspaceUrl}/api/2.0/secrets/put', headers=headers, json=payload_host)
+      response_token = requests.post(f'{workspaceUrl}/api/2.0/secrets/put', headers=headers, json=payload_token)
+      print(f"Patched host and token. Secrets at scope: {scope_name}")
       print(json.dumps(response.json(),indent=4))
     if response.status_code == 404:
       print(f"{scope_name} scope not created yet; creating....")
@@ -123,23 +137,13 @@ def create_secrets(scope_name, workspaceUrl, databricks_token):
       print(f"Secrets at scope: {scope_name}")
       print(json.dumps(response.json(),indent=4))
 
-      payload_host = {
-          "scope": scope_name,
-          "key": "databricks_host",
-          "string_value": workspaceUrl
-      }
+      # Put host and token at scope
       response_host = requests.post(f'{workspaceUrl}/api/2.0/secrets/put', headers=headers, json=payload_host)
-      
-      payload_token = {
-            "scope": scope_name,
-            "key": "databricks_token",
-            "string_value": databricks_token
-      }
       response_token = requests.post(f'{workspaceUrl}/api/2.0/secrets/put', headers=headers, json=payload_token)
   except requests.exceptions.RequestException as e:
       print("An error occurred during the API call:", e)
     
-  # Check if host and tokens already set, otherwise set them
+  # Check if host and token can be retrieved 
   try:
     print("Attempting to get temporary tokens to workspace, should show redacted...")
     print(dbutils.secrets.get(scope_name,'databricks_host'))
