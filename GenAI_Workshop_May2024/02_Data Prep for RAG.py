@@ -301,7 +301,7 @@ spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableCha
 # MAGIC 4. Fill in these details:
 # MAGIC   * Enter index name: `product_manuals_index`
 # MAGIC   * Primary key: `chunk_id`
-# MAGIC   * Endpoint: `endpoint_1`
+# MAGIC   * Endpoint: `vs_endpoint_10` <-- replace `10` with a different number if errors occur
 # MAGIC     * If you get an error creating, the index is full and you should create another one.
 # MAGIC   * Embedding source: `Compute embeddings`
 # MAGIC   * Embedding source column: `chunked_text`
@@ -330,8 +330,8 @@ spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableCha
 from databricks.vector_search.client import VectorSearchClient
 vsc = VectorSearchClient()
 
-# Initialize variables
-vs_endpoint = vector_search_endpoint_prefix+schema_name
+# Variable from init notebook
+print(f"Vector Endpoint name: {vs_endpoint}. If issues, replace variable `vs_endpoint` with `fallback_vs_endpoint` in create_endpoint command")
 
 # First, create the Endpoint
 print(f"Attempting to find Endpoint named {vs_endpoint}; creating if new. This may take a few minutes...")

@@ -28,13 +28,28 @@ print(f"Place PDFs for RAG in: {catalog_name}.{schema_name}.{volume_name}")
 
 # COMMAND ----------
 
-vector_search_endpoint_prefix = "vs_endpoint_"
-vs_endpoint = vector_search_endpoint_prefix+schema_name
+# Function used to randomly assign each user a VS Endpoint
+def get_fixed_integer(string_input):
+    # Calculate the sum of ASCII values of the characters in the input string
+    ascii_sum = sum(ord(char) for char in string_input)
+    
+    # Map the sum to a fixed integer between 1 and 9
+    fixed_integer = (ascii_sum % 9) + 1
+    
+    return fixed_integer
 
+# COMMAND ----------
+
+vector_search_endpoint_prefix = "vs_endpoint_"
+
+# Picking Vector Search Endpoint, a shared resource b/w participants
+vs_endpoint = vector_search_endpoint_prefix+str(get_fixed_integer(schema_name))
+fallback_vs_endpoint = vector_search_endpoint_prefix+schema_name
+print(f"Vector Endpoint name: {vs_endpoint}. If issues, replace variable `vs_endpoint` with `fallback_vs_endpoint` in Labs 2+3.")
 
 index_name = "product_index_"+current_user_safe
 full_index_location = f"{catalog_name}.{schema_name}.{index_name}"
-print(f"Vector index name: {full_index_location}")
+print(f"Vector Index name: {full_index_location}")
 
 import time
 def wait_for_vs_endpoint_to_be_ready(vsc, vs_endpoint_name):
@@ -126,16 +141,16 @@ def create_secrets(scope_name, workspaceUrl, databricks_token):
     
   # Check if host and tokens already set, otherwise set them
   try:
-    print("Attempting to get tokens to workspace, should show redacted")
+    print("Attempting to get temporary tokens to workspace, should show redacted...")
     print(dbutils.secrets.get(scope_name,'databricks_host'))
     print(dbutils.secrets.get(scope_name,'databricks_token'))
   except requests.exceptions.RequestException as e:
       print("An error occurred during the dbutils call:", e)
     
 
-  print("Will show redacted if secrets properly created")
-  print(dbutils.secrets.get(scope_name,'databricks_host'))
-  print(dbutils.secrets.get(scope_name,'databricks_token'))
+  # print("Will show redacted if secrets properly created")
+  # print(dbutils.secrets.get(scope_name,'databricks_host'))
+  # print(dbutils.secrets.get(scope_name,'databricks_token'))
 
 # COMMAND ----------
 

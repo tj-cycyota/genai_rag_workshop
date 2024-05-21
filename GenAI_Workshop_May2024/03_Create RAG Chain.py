@@ -17,7 +17,7 @@
 # MAGIC
 # MAGIC 1. **Import LangChain components** for:
 # MAGIC     * [DatabricksVectorSearch](https://python.langchain.com/v0.1/docs/integrations/vectorstores/databricks_vector_search/): used to retrieve documents from our Vector Search Index from `Step 02`
-# MAGIC     * [DatabricksLLM](https://python.langchain.com/v0.1/docs/integrations/llms/databricks/): our actual large language model that receives an enriched prompt (with our retrieved documents) to answer a user's question
+# MAGIC     * [DatabricksLLM](https://python.langchain.com/v0.1/docs/integrations/llms/databricks/): a powerful large language model that receives an enriched prompt (with our retrieved documents) to answer a user's question
 # MAGIC
 # MAGIC 2. **Build these components into a RAG Chain**
 # MAGIC
@@ -125,6 +125,7 @@ print(f"Relevant documents: {similar_documents[0]}")
 
 chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens = 500)
 
+# Test with a non-RAG prompt, e.g. a generic question
 print(f"Test chat results: \n {chat_model.predict('What is Apache Spark')}")
 
 # COMMAND ----------
@@ -243,11 +244,12 @@ with mlflow.start_run(run_name="product_manual_chatbot") as run:
 import pandas as pd
 langchain.debug = False
 
-# Load the first version of the model from UC
-model_version_uri = "models:/"+model_name +"/1"
-print(f"Loading model from UC: {model_version_uri}")
+# Load the latest version of the model from UC
+model_version_to_evaluate = get_latest_model_version(model_name)
+print(f"Latest model version of {model_name}: {model_version_to_evaluate}")
 
-loaded_chain = mlflow.pyfunc.load_model(model_version_uri)
+# Load Model to make predictions
+loaded_chain = mlflow.pyfunc.load_model(f"models:/{model_name}/{model_version_to_evaluate}")
 
 # Create simple dataset to demonstrate batch predictions
 df = pd.DataFrame({"query": [
@@ -369,9 +371,7 @@ displayHTML(f'Your Model Endpoint Serving is now available. Open the <a href="/m
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC The code above will eventually display a URL where you can visit your model serving endpoint. 
-# MAGIC
-# MAGIC In the meantime, you can click on the left nav to `Serving` to see it being provisioned. 
+# MAGIC The code above will eventually display a URL where you can visit your model serving endpoint. In the meantime, you can click on the left nav to `Serving` to see it being provisioned. 
 # MAGIC
 # MAGIC When the endpoint is ready, click to it then `Query Endpoint` with `Sample Request` - feel free to make sure this matches the results you're seeing here in the notebook. 
 # MAGIC
@@ -379,6 +379,7 @@ displayHTML(f'Your Model Endpoint Serving is now available. Open the <a href="/m
 # MAGIC
 # MAGIC **Have extra time?**
 # MAGIC * Review the `Evaluation_Strategies` noebook in the `ExtraCredit` folder
+# MAGIC * In the `04_` folder, run the `RUNME_` notebook to see a chat UI with interactive chain debugging support.
 # MAGIC * Try adding a few more PDFs for important parts or products (text-based)
 # MAGIC * Try modifying the chunking code in `Lab 02` to handle tables or complex documents
 # MAGIC * Try modifying the Prompt to handle conversation history
