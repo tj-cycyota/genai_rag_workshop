@@ -209,6 +209,7 @@ answer = chain.run(question) # Same question
 from mlflow.models import infer_signature
 import mlflow
 import langchain
+import langchain_community
 
 # Set the MLflow registry to use Unity Catalog
 mlflow.set_registry_uri("databricks-uc")
@@ -225,6 +226,7 @@ with mlflow.start_run(run_name="product_manual_chatbot") as run:
         pip_requirements=[
             "mlflow==" + mlflow.__version__,
             "langchain==" + langchain.__version__,
+            "langchain_community==" + langchain_community.__version__,
             "databricks-vectorsearch"
         ],
         input_example=question,
