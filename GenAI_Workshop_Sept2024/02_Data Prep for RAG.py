@@ -9,7 +9,7 @@
 
 # MAGIC %md
 # MAGIC # LAB 2. Data Prep for Retrieval Augmented Generation
-# MAGIC **Databricks GenAI Workshop 2024**
+# MAGIC **Databricks GenAI Workshop**
 # MAGIC
 # MAGIC In this notebook we will prepare a PDF document for Vector Search, which will allow us to retrieve relevant documents for a RAG application.
 # MAGIC
@@ -22,7 +22,7 @@
 # MAGIC
 # MAGIC 4. **Write** chunked data to a Delta table. We will do a one-time load of PDFs, but with [AutoLoader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html), you can automate this process to always watch for newly-arriving files. 
 # MAGIC
-# MAGIC 5. **Synchronize** your "offline" Delta table with an "online" (Vector Search Index)[https://docs.databricks.com/en/generative-ai/vector-search.html] that we will use for retrieval for a RAG application.
+# MAGIC 5. **Synchronize** your "offline" Delta table with an "online" [Vector Search Index](https://docs.databricks.com/en/generative-ai/vector-search.html) that we will use for retrieval for a RAG application.
 # MAGIC
 # MAGIC 6. **Similarity Search** for documents based on a plain-English question to validate our implementation works!
 
@@ -31,7 +31,7 @@
 # MAGIC %md
 # MAGIC ## Requirements
 # MAGIC
-# MAGIC To run this notebook, you need to use one of the following Databricks runtime(s): **14.3.x-cpu-ml-scala2.12, 14.3.x-gpu-ml-scala2.12**
+# MAGIC To run this notebook, you need to use one of the following Databricks runtime(s): **`15.4.x-cpu-ml-scala2.12, 15.4.x-gpu-ml-scala2.12`**
 
 # COMMAND ----------
 
@@ -73,7 +73,8 @@ if dbr_majorversion >= 14:
 # MAGIC ## 1. Load example PDF to a UC Volume
 # MAGIC
 # MAGIC This step can be done from the UI. 
-# MAGIC 1. In a new browser tab, navigate to: https://prod-edam.honeywell.com/content/dam/honeywell-edam/sps/siot/en-us/products/test-and-measurement-products/instrumentation/temperature-monitoring-systems/model-1400b-series/documents/sps-siot-model-1400b-datasheet-ciid-181048.pdf
+# MAGIC 1. In a new browser tab, navigate to: 
+# MAGIC * 
 # MAGIC
 # MAGIC 2. Download this PDF to your local laptop
 # MAGIC
@@ -88,27 +89,28 @@ print(f"Documents will be put in UC at: {volume_location}")
 
 # COMMAND ----------
 
-# import requests
+import requests
 
-# # Set the URL of the PDF file
-# pdf_url = "https://prod-edam.honeywell.com/content/dam/honeywell-edam/sps/siot/en-us/products/test-and-measurement-products/instrumentation/temperature-monitoring-systems/model-1400b-series/documents/sps-siot-model-1400b-datasheet-ciid-181048.pdf"
+# Set the URL of the PDF file
+pdf_url = "https://h10032.www1.hp.com/ctg/Manual/c05048181.pdf"
+#"https://h10032.www1.hp.com/ctg/Manual/c01697043.pdf"
 
-# manual_filename = "manual.pdf"
-# path = volume_location+manual_filename
+manual_filename = "manual.pdf"
+path = volume_location+manual_filename
 
-# # Send a GET request to the URL
-# response = requests.get(pdf_url, stream=True)
+# Send a GET request to the URL
+response = requests.get(pdf_url, stream=True, verify=False)
 
-# # Check if the request was successful (status code 200)
-# if response.status_code == 200:
-#     # Open a local file in binary write mode
-#     with open(path, "wb") as f:
-#         # Iterate over the response content and write it to the file
-#         for chunk in response.iter_content(chunk_size=1024):
-#             f.write(chunk)
-#     print(f"Download completed successfully, file saved to {path}")
-# else:
-#     print("Failed to download the PDF file. Check the URL or try again later.")
+# Check if the request was successful (status code 200)
+if response.status_code == 200:
+    # Open a local file in binary write mode
+    with open(path, "wb") as f:
+        # Iterate over the response content and write it to the file
+        for chunk in response.iter_content(chunk_size=1024):
+            f.write(chunk)
+    print(f"Download completed successfully, file saved to {path}")
+else:
+    print("Failed to download the PDF file. Check the URL or try again later.")
 
 # COMMAND ----------
 
@@ -148,7 +150,6 @@ display(raw_df)
 
 # COMMAND ----------
 
-
 @F.udf(
     returnType=StructType(
         [
@@ -165,7 +166,11 @@ def parse_pdf(pdf_raw_bytes):
         reader = PdfReader(pdf)
         output_text = ""
         for _, page_content in enumerate(reader.pages):
-            output_text += page_content.extract_text() + "\n\n"
+            #PyPDF docs: https://pypdf.readthedocs.io/en/stable/user/extract-text.html
+            output_text += page_content.extract_text( 
+                extraction_mode="layout", 
+                layout_mode_space_vertically=False,
+                ) + "\n\n"
 
         return {
             "number_pages": len(reader.pages),
@@ -193,7 +198,7 @@ display(parsed_df)
 # MAGIC
 # MAGIC If you expand the object in the `parsed_output` column from the last step, you will see we have a massive blob of raw text. 
 # MAGIC
-# MAGIC This is a relatively short document (2 printed pages), so its not too long, but imagine if it were dozens or hundreds of pages long: it would be effectively unusable by an LLM, as every LLM has a maximum input length, and it is challenging for large language models to provide satisfactory responses when the prompt is too long. 
+# MAGIC This is a relatively short document, so its not too long, but imagine if it were dozens or hundreds of pages long: it would be effectively unusable by an LLM, as every LLM has a maximum input length, and it is challenging for large language models to provide satisfactory responses when the prompt is too long. 
 # MAGIC
 # MAGIC So what should we do? **Chunk our documents**! This means splitting large blobs of text into shorter sections, which are usable by an LLM for question-answering. This approach is applicable to all kinds of documents (not just text-based ones): you can chunk large reference tables, mechanical diagrams, or really any kind of information you would find in a reference document. For our example, we'll stick with a straightforward approach and just break our big blob of text into smaller chunks, with some overlap between them. 
 # MAGIC
@@ -202,8 +207,8 @@ display(parsed_df)
 # COMMAND ----------
 
 # Set chunking params
-chunk_size_tokens = 350
-chunk_overlap_tokens = 50
+chunk_size_tokens = 2000
+chunk_overlap_tokens = 200
 
 # Instantiate tokenizer
 ## Read more here: https://huggingface.co/transformers/v3.0.2/model_doc/auto.html#autotokenizer
@@ -215,13 +220,17 @@ tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-large-en-v1.5')
           # useArrow=True, # set globally
           )
 def split_char_recursive(content: str) -> List[str]:
+    # Adding regex to remove ellipsis
+    pattern = r'\.{3,}'
+    cleaned_content = re.sub(pattern, '', content)
+    # Use Hugging Face's CharacterTextSplitter
     text_splitter = CharacterTextSplitter.from_huggingface_tokenizer(
         tokenizer, 
         separator = " ",
         chunk_size=chunk_size_tokens, 
         chunk_overlap=chunk_overlap_tokens
     )
-    chunks = text_splitter.split_text(content)
+    chunks = text_splitter.split_text(cleaned_content)
     return [doc for doc in chunks]
 
 # Apply Chunking
@@ -394,11 +403,9 @@ print(f"index {full_index_location} on table {full_table_location} is ready")
 
 # COMMAND ----------
 
-import mlflow.deployments
-deploy_client = mlflow.deployments.get_deploy_client("databricks")
-
 # If you have ingested a different PDF document, change this question to something the document mentions
-question = "What is the expected accuracy of the thermocouples in the sensor?"
+question = "Do I need to install any drivers on my computer to use the webscan feature?"
+# "How do I scan a document?"
 
 results = vsc.get_index(vs_endpoint, full_index_location).similarity_search(
   query_text=question,
