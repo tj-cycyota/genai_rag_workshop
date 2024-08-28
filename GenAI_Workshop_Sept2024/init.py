@@ -68,6 +68,11 @@ def wait_for_vs_endpoint_to_be_ready(vsc, vs_endpoint_name):
 
 # COMMAND ----------
 
+## UC Model name where the POC chain is logged
+rag_model_name = f"{catalog_name}.{schema_name}.agent_framework_app"
+
+# COMMAND ----------
+
 def index_exists(vsc, endpoint_name, index_full_name):
     indexes = vsc.list_indexes(endpoint_name).get("vector_indexes", list())
     if any(index_full_name == index.get("name") for index in indexes):
@@ -167,3 +172,109 @@ def get_latest_model_version(model_name):
         if version_int > latest_version:
             latest_version = version_int
     return latest_version
+
+# COMMAND ----------
+
+from typing import Dict, Any
+
+def _flatten_nested_params(
+    d: Dict[str, Any], parent_key: str = "", sep: str = "/"
+) -> Dict[str, str]:
+    items: Dict[str, Any] = {}
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.update(_flatten_nested_params(v, new_key, sep=sep))
+        else:
+          items[new_key] = v
+    return items
+
+def tag_delta_table(table_fqn, config):
+    flat_config = _flatten_nested_params(config)
+    sqls = []
+    for key, item in flat_config.items():
+        
+        sqls.append(f"""
+        ALTER TABLE {table_fqn}
+        SET TAGS ("{key.replace("/", "__")}" = "{item}")
+        """)
+    sqls.append(f"""
+        ALTER TABLE {table_fqn}
+        SET TAGS ("table_source" = "rag_poc_pdf")
+        """)
+    for sql in sqls:
+        # print(sql)
+        spark.sql(sql)
+
+# COMMAND ----------
+
+# Chain configuration
+# We suggest using these default settings
+rag_chain_config = {
+    "databricks_resources": {
+        # Only required if using Databricks vector search
+        "vector_search_endpoint_name": vs_endpoint,
+        # Databricks Model Serving endpoint name
+        # This is the generator LLM where your LLM queries are sent.
+        "llm_endpoint_name": "databricks-dbrx-instruct",
+    },
+    "retriever_config": {
+        # Vector Search index that is created by the data pipeline
+        "vector_search_index": full_index_location,
+        "schema": {
+            # The column name in the retriever's response referred to the unique key
+            # If using Databricks vector search with delta sync, this should the column of the delta table that acts as the primary key
+            "primary_key": "chunk_id",
+            # The column name in the retriever's response that contains the returned chunk.
+            "chunk_text": "chunked_text",
+            # The template of the chunk returned by the retriever - used to format the chunk for presentation to the LLM.
+            "document_uri": "path",
+        },
+        # Prompt template used to format the retrieved information to present to the LLM to help in answering the user's question
+        "chunk_template": "Passage: {chunk_text}\n",
+        # The column name in the retriever's response that refers to the original document.
+        "parameters": {
+            # Number of search results that the retriever returns
+            "k": 5,
+            # Type of search to run
+            # Semantic search: `ann`
+            # Hybrid search (keyword + sementic search): `hybrid`
+            "query_type": "ann",
+        },
+        # Tag for the data pipeline, allowing you to easily compare the POC results vs. future data pipeline configurations you try.
+        "data_pipeline_tag": "poc",
+    },
+    "llm_config": {
+        # Define a template for the LLM prompt.  This is how the RAG chain combines the user's question and the retrieved context.
+        "llm_system_prompt_template": """You are an assistant that answers questions. Use the following pieces of retrieved context to answer the question. Some pieces of context may be irrelevant, in which case you should not use them to form the answer.
+
+Context: {context}""".strip(),
+        # Parameters that control how the LLM responds.
+        "llm_parameters": {"temperature": 0.01, "max_tokens": 1500},
+    },
+    "input_example": {
+        "messages": [
+            {
+                "role": "user",
+                "content": "What is RAG?",
+            },
+        ]
+    },
+}
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Load config & save to YAML
+
+# COMMAND ----------
+
+import yaml, json
+print(f"Using chain config: {json.dumps(rag_chain_config, indent=4)}")
+
+with open('rag_chain_config.yaml', 'w') as f:
+    yaml.dump(rag_chain_config, f)
+
+# COMMAND ----------
+
+
