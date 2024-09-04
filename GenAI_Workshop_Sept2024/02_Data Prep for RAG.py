@@ -50,6 +50,7 @@
 # COMMAND ----------
 
 import io
+import re
 from typing import List
 import pyspark.sql.functions as F
 from pyspark.sql.types import *
@@ -262,6 +263,8 @@ display(chunked_df)
 # MAGIC * Number of rows ("chunks") in your resulting table? 
 # MAGIC * Length in words of each chunk? Why is the number of words different than the `chunk_size_tokens` setting? Is there a relationship between a word and a token? 
 # MAGIC * The "usefulness" of each chunk? Review the text of some of them. Are they too small to contain the useful information? Or too long that they're overly dense?
+# MAGIC
+# MAGIC If you have time during the lab, you can also check out other parsing/chunking libraries such as [unstructured.io](https://docs.unstructured.io/open-source/core-functionality/chunking) that allow you to extract information such as tables, charts, and images from the document. 
 
 # COMMAND ----------
 
@@ -279,10 +282,16 @@ full_table_location = f"{catalog_name}.{schema_name}.{chunked_table_name}"
 
 print(f"Saving data to UC table: {full_table_location}")
 
-chunked_df.write.format("delta").mode("overwrite").saveAsTable(full_table_location)
+(
+  chunked_df.write
+    .format("delta")
+    .option("delta.enableChangeDataFeed", "true")
+    .mode("overwrite")
+    .saveAsTable(full_table_location)
+)
 
-# We need to enable Change Data Feed on our Delta table to use it for Vector Search
-spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")
+# # We need to enable Change Data Feed on our Delta table to use it for Vector Search. If your table was already created, you can alter it:
+# spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")
 
 # COMMAND ----------
 
@@ -310,7 +319,7 @@ spark.sql(f"ALTER TABLE {full_table_location} SET TBLPROPERTIES (delta.enableCha
 # MAGIC 4. Fill in these details:
 # MAGIC   * Enter index name: `product_manuals_index`
 # MAGIC   * Primary key: `chunk_id`
-# MAGIC   * Endpoint: `vs_endpoint_10` <-- replace `10` with a different number if errors occur
+# MAGIC   * Endpoint: `vs_endpoint_1` <-- replace `1` with a different number if errors occur
 # MAGIC     * If you get an error creating, the index is full and you should create another one.
 # MAGIC   * Embedding source: `Compute embeddings`
 # MAGIC   * Embedding source column: `chunked_text`
@@ -425,4 +434,5 @@ docs
 # MAGIC **NOTE**: Make sure the steps above completed successfully, as they are needed in the next part of the lab!
 # MAGIC
 # MAGIC **Have extra time?**
-# MAGIC * Review the `Chunking_Strategies` noebook in the `ExtraCredit` folder
+# MAGIC * Review the `Chunking_Strategies` notebook in the `ExtraCredit` folder
+# MAGIC * Explore and test other chunking libraries such as unstructured.io

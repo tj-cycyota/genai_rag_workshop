@@ -11,7 +11,19 @@
 # MAGIC # LAB 3. Deploy POC to Review App
 # MAGIC **Databricks GenAI Workshop**
 # MAGIC
-# MAGIC TODO
+# MAGIC In this notebook we will deploy a fully functional RAG application to Model Serving, then interact with our application in the Agent Review UI. 
+# MAGIC
+# MAGIC This notebook extends the topics discussed in earlier notebooks, so make sure you run them first! We'll complete the following steps:
+# MAGIC
+# MAGIC 1. **Review** the **LangChain** application logic that will perform retrieval augmented generation in response to a user's chat message. 
+# MAGIC
+# MAGIC 2. **Log** the application code to **MLflow** with the supported LangChain model flavor. 
+# MAGIC
+# MAGIC 3. **Test** the chain locally by loading it back from MLflow. 
+# MAGIC
+# MAGIC 4. **Deploy** the chain to a real-time model serving endpoints and the Agent Review UI. 
+# MAGIC
+# MAGIC 5. **Interact** with the RAG chain via the Review UI and ask questions related to our document(s).
 
 # COMMAND ----------
 
@@ -19,10 +31,7 @@
 # MAGIC ## Requirements
 # MAGIC
 # MAGIC To run this notebook, you need to use one of the following Databricks runtime(s): **`15.4.x-cpu-ml-scala2.12, 15.4.x-gpu-ml-scala2.12`**
-
-# COMMAND ----------
-
-# MAGIC %md
+# MAGIC
 # MAGIC First, run this pip install and initialization script to set a few parameters:
 
 # COMMAND ----------
@@ -57,6 +66,16 @@ CHAIN_CODE_FILE = "multi_turn_rag_chain"
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC Spend a few minutes reviewing the code and how it uses configuration values from the `rag_chain_config.yaml` file (also in the same directory). The point of this exercise is not to become an expert on this particular chain framework, but rather to notice **how to tie together various components into a composable Compound AI system**. 
+# MAGIC
+# MAGIC For further learning, we recommend the following articles:
+# MAGIC * [Create and log AI agents](https://docs.databricks.com/en/generative-ai/create-log-agent.html)
+# MAGIC * [LangChain on Databricks for LLM development](https://docs.databricks.com/en/large-language-models/langchain.html)
+# MAGIC * [Building Enterprise GenAI Apps with Meta Llama 3 on Databricks](https://www.databricks.com/blog/building-enterprise-genai-apps-meta-llama-3-databricks)
+
+# COMMAND ----------
+
 # MAGIC %md ## Log the chain to MLflow & test the RAG chain locally
 # MAGIC
 # MAGIC This will save the chain using MLflow's code-based logging and invoke it locally to test it.  
@@ -74,7 +93,7 @@ with mlflow.start_run(run_name="poc_"+current_user_safe):
         lc_model=os.path.join(
             os.getcwd(), CHAIN_CODE_FILE
         ),  # Chain code file e.g., /path/to/the/chain.py
-        model_config=rag_chain_config,  # Chain configuration set in 00_config
+        model_config=rag_chain_config,  # Chain configuration set in init
         artifact_path="chain",  # Required by MLflow
         input_example=rag_chain_config[
             "input_example"
@@ -82,13 +101,6 @@ with mlflow.start_run(run_name="poc_"+current_user_safe):
         example_no_conversion=True,  # Required by MLflow to use the input_example as the chain's schema
         extra_pip_requirements=["databricks-agents"]
     )
-
-    # # Attach the data pipeline's configuration as parameters
-    # mlflow.log_params(_flatten_nested_params({"data_pipeline": data_pipeline_config}))
-
-    # # Attach the data pipeline configuration 
-    # mlflow.log_dict(data_pipeline_config, "data_pipeline_config.json")
-
 
 # COMMAND ----------
 
@@ -162,3 +174,20 @@ while w.serving_endpoints.get(deployment_info.endpoint_name).state.ready == Endp
     time.sleep(30)
 
 print(f"\n\nReview App: {deployment_info.review_app_url}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC That's it, your agent is deployed!
+# MAGIC
+# MAGIC Visit the 2 links printed out in the cell above. These are:
+# MAGIC * Model Serving Endpoint hosting your RAG application. [Model Serving info](https://docs.databricks.com/en/machine-learning/model-serving/index.html)
+# MAGIC * Agent Review UI for subject matter experts to review the applications behavior and performance, as well as provide "ground truth" data for automated evaluation. [Agent Review UI info](https://docs.databricks.com/en/generative-ai/deploy-agent.html)
+# MAGIC
+# MAGIC Once the Model Serving endpoint is ready (should take ~10-15 mins), go to the chat UI and ask questions about your document. You can then provide feedback/edits, which will be logged to the Inference Table and used in later sections for evaluation.
+# MAGIC
+# MAGIC If you have extra time in your lab, feel free to make edits to the chain logic and config file to affect the behavior and performance of your RAG application!
+
+# COMMAND ----------
+
+

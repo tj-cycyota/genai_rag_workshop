@@ -1,6 +1,6 @@
 databricks_resources:
   llm_endpoint_name: databricks-dbrx-instruct
-  vector_search_endpoint_name: vs_endpoint_8
+  vector_search_endpoint_name: vs_endpoint_2
 input_example:
   messages:
   - content: What is RAG?
