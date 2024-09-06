@@ -79,8 +79,6 @@ CHAIN_CODE_FILE = "multi_turn_rag_chain"
 # MAGIC %md ## Log the chain to MLflow & test the RAG chain locally
 # MAGIC
 # MAGIC This will save the chain using MLflow's code-based logging and invoke it locally to test it.  
-# MAGIC
-# MAGIC **MLflow Tracing** allows you to inspect what happens inside the chain.  This same tracing data will be logged from your deployed chain along with feedback that your stakeholders provide to a Delta Table.
 
 # COMMAND ----------
 
@@ -106,6 +104,10 @@ with mlflow.start_run(run_name="poc_"+current_user_safe):
 
 # MAGIC %md
 # MAGIC ## Test the chain locally
+# MAGIC
+# MAGIC We will load our model back using MLflow to test its behavior.
+# MAGIC
+# MAGIC **MLflow Tracing** allows you to inspect what happens inside the chain.  This same tracing data will be logged from your deployed chain along with feedback that your stakeholders provide to a Delta Table.
 
 # COMMAND ----------
 
@@ -125,7 +127,7 @@ chain.invoke(chain_input)
 # MAGIC %md
 # MAGIC ## Deploy to the Review App
 # MAGIC
-# MAGIC Now, let's deploy the POC to the Review App so your stakeholders can provide you feedback.
+# MAGIC Now, let's deploy the POC to the Review App so your stakeholders can provide you feedback. We'll provide instructions to guide their review (the below can be customized to your use-case)
 # MAGIC
 # MAGIC Notice how simple it is to call `agents.deploy()` to enable the Review App and create an API endpoint for the RAG chain!
 
@@ -162,7 +164,7 @@ uc_registered_model_info = mlflow.register_model(model_uri=logged_chain_info.mod
 deployment_info = agents.deploy(model_name=rag_model_name, model_version=uc_registered_model_info.version)
 
 browser_url = mlflow.utils.databricks_utils.get_browser_hostname()
-print(f"\n\nView deployment status: https://{browser_url}/ml/endpoints/{deployment_info.endpoint_name}")
+print(f"\n\nView deployment status: {browser_url}/ml/endpoints/{deployment_info.endpoint_name}")
 
 # Add the user-facing instructions to the Review App
 agents.set_review_instructions(rag_model_name, instructions_to_reviewer)
@@ -184,7 +186,7 @@ print(f"\n\nReview App: {deployment_info.review_app_url}")
 # MAGIC * Model Serving Endpoint hosting your RAG application. [Model Serving info](https://docs.databricks.com/en/machine-learning/model-serving/index.html)
 # MAGIC * Agent Review UI for subject matter experts to review the applications behavior and performance, as well as provide "ground truth" data for automated evaluation. [Agent Review UI info](https://docs.databricks.com/en/generative-ai/deploy-agent.html)
 # MAGIC
-# MAGIC Once the Model Serving endpoint is ready (should take ~10-15 mins), go to the chat UI and ask questions about your document. You can then provide feedback/edits, which will be logged to the Inference Table and used in later sections for evaluation.
+# MAGIC Once the Model Serving endpoint is ready (should take ~10-15 mins), go to the chat UI and ask questions about your document. You can then provide feedback/edits, which will be logged to the Inference Table and can be used in later sections for evaluation.
 # MAGIC
 # MAGIC If you have extra time in your lab, feel free to make edits to the chain logic and config file to affect the behavior and performance of your RAG application!
 
