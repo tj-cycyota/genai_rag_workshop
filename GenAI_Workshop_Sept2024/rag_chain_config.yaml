@@ -27,4 +27,4 @@ retriever_config:
     chunk_text: chunked_text
     document_uri: path
     primary_key: chunk_id
-  vector_search_index: main.genai_workshop_tj_cycyota.product_index_tj_cycyota
+  vector_search_index: main.genai_workshop_wafa_louhichi.product_index_wafa_louhichi

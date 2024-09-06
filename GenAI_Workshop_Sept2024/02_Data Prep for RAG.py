@@ -40,7 +40,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U --quiet pypdf==4.1.0 databricks-vectorsearch
+# MAGIC %pip install -U --quiet pypdf==4.1.0 databricks-vectorsearch transformers langchain
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -91,6 +91,7 @@ print(f"Documents will be put in UC at: {volume_location}")
 # COMMAND ----------
 
 import requests
+import re
 
 # Set the URL of the PDF file
 pdf_url = "https://h10032.www1.hp.com/ctg/Manual/c05048181.pdf"
