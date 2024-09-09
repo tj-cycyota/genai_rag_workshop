@@ -122,6 +122,11 @@ chain.invoke(chain_input)
 
 # COMMAND ----------
 
+chain_output = chain.invoke(chain_input)
+display(chain_output)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Deploy to the Review App
 # MAGIC
@@ -187,7 +192,3 @@ print(f"\n\nReview App: {deployment_info.review_app_url}")
 # MAGIC Once the Model Serving endpoint is ready (should take ~10-15 mins), go to the chat UI and ask questions about your document. You can then provide feedback/edits, which will be logged to the Inference Table and used in later sections for evaluation.
 # MAGIC
 # MAGIC If you have extra time in your lab, feel free to make edits to the chain logic and config file to affect the behavior and performance of your RAG application!
-
-# COMMAND ----------
-
-
