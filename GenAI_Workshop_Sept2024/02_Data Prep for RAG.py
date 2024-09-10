@@ -49,8 +49,7 @@
 
 # COMMAND ----------
 
-import io
-import re
+import io, re, time
 from typing import List
 import pyspark.sql.functions as F
 from pyspark.sql.types import *
@@ -348,7 +347,7 @@ from databricks.vector_search.client import VectorSearchClient
 vsc = VectorSearchClient()
 
 # Variable from init notebook
-print(f"Vector Endpoint name: {vs_endpoint}. If issues, replace variable `vs_endpoint` with `fallback_vs_endpoint` in create_endpoint command")
+print(f"Vector Endpoint name: {vs_endpoint}. If issues, replace variable `vs_endpoint` with `fallback_vs_endpoint` in init notebook and re-run")
 
 # First, create the Endpoint
 print(f"Attempting to find Endpoint named {vs_endpoint}; creating if new. This may take a few minutes...")
@@ -357,6 +356,7 @@ if vs_endpoint not in [e['name'] for e in vsc.list_endpoints().get('endpoints', 
         name=vs_endpoint, 
         endpoint_type="STANDARD"
         )
+    time.sleep(30)
 
 wait_for_vs_endpoint_to_be_ready(vsc, vs_endpoint)
 print(f"Endpoint named {vs_endpoint} is ready.")

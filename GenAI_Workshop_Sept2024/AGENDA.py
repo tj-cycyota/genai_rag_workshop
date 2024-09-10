@@ -28,6 +28,16 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC
+# MAGIC ## Admin Guide
+# MAGIC
+# MAGIC Please complete the following steps in a Databricks workspace for users to be able to run this lab:
+# MAGIC * Grant permissions to the `main` UC Catalog in a new workspace: Catalog -> `main` -> Permissions -> users required `USE CATALOG`, `CREATE SCHEMA`, `CREATE TABLE`, and `CREATE PERMISSIONS` permissions. It is simplest to give `Data Editor` permission group to simplify this process. You can also edit the `init` notebook to point to a different catalog if needed.
+# MAGIC * Enable Genie. Logged in as admin, click top-right -> Preview -> Genie `on`
+
+# COMMAND ----------
+
 # MAGIC %md-sandbox
 # MAGIC &copy; 2024 Databricks, Inc. All rights reserved.<br/>
 # MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="https://www.apache.org/">Apache Software Foundation</a>.<br/>

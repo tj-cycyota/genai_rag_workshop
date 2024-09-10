@@ -264,21 +264,11 @@ Context: {context}""".strip(),
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Load config & save to YAML
-
-# COMMAND ----------
-
 import yaml, json
 print(f"Using chain config: {json.dumps(rag_chain_config, indent=4)}")
 
 with open('rag_chain_config.yaml', 'w') as f:
     yaml.dump(rag_chain_config, f)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Load config & save to YAML
 
 # COMMAND ----------
 
