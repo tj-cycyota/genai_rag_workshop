@@ -30,6 +30,10 @@
 
 # COMMAND ----------
 
+# MAGIC %run ./init
+
+# COMMAND ----------
+
 import os
 filename = "Data/laptops_train.csv"
 data_path = "file:" + os.path.join(os.getcwd(), filename)
