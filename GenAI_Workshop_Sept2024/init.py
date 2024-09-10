@@ -33,8 +33,8 @@ def get_fixed_integer(string_input):
     # Calculate the sum of ASCII values of the characters in the input string
     ascii_sum = sum(ord(char) for char in string_input)
     
-    # Map the sum to a fixed integer between 1 and 9
-    fixed_integer = (ascii_sum % 9) + 1
+    # Map the sum to a fixed integer
+    fixed_integer = (ascii_sum % 5) + 1
     
     return fixed_integer
 
@@ -277,4 +277,52 @@ with open('rag_chain_config.yaml', 'w') as f:
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Load config & save to YAML
 
+# COMMAND ----------
+
+def deduplicate_assessments_table(assessment_table):
+    # De-dup response assessments
+    assessments_request_deduplicated_df = spark.sql(f"""select * except(row_number)
+                                        from ( select *, row_number() over (
+                                                partition by request_id
+                                                order by
+                                                timestamp desc
+                                            ) as row_number from {assessment_table} where text_assessment is not NULL
+                                        ) where row_number = 1""")
+    # De-dup the retrieval assessments
+    assessments_retrieval_deduplicated_df = spark.sql(f"""select * except( retrieval_assessment, source, timestamp, text_assessment, schema_version),
+        any_value(timestamp) as timestamp,
+        any_value(source) as source,
+        collect_list(retrieval_assessment) as retrieval_assessments
+      from {assessment_table} where retrieval_assessment is not NULL group by request_id, source.id, step_id"""    )
+
+    # Merge together
+    assessments_request_deduplicated_df = assessments_request_deduplicated_df.drop("retrieval_assessment", "step_id")
+    assessments_retrieval_deduplicated_df = assessments_retrieval_deduplicated_df.withColumnRenamed("request_id", "request_id2").withColumnRenamed("source", "source2").drop("step_id", "timestamp")
+
+    merged_deduplicated_assessments_df = assessments_request_deduplicated_df.join(
+        assessments_retrieval_deduplicated_df,
+        (assessments_request_deduplicated_df.request_id == assessments_retrieval_deduplicated_df.request_id2) &
+        (assessments_request_deduplicated_df.source.id == assessments_retrieval_deduplicated_df.source2.id),
+        "full"
+    ).select(
+        [str(col) for col in assessments_request_deduplicated_df.columns] +
+        [assessments_retrieval_deduplicated_df.retrieval_assessments]
+    )
+
+    return merged_deduplicated_assessments_df
+
+# COMMAND ----------
+
+# Helper function
+def get_latest_model(model_name):
+    from mlflow.tracking import MlflowClient
+    mlflow_client = MlflowClient(registry_uri="databricks-uc")
+    latest_version = None
+    for mv in mlflow_client.search_model_versions(f"name='{model_name}'"):
+        version_int = int(mv.version)
+        if not latest_version or version_int > int(latest_version.version):
+            latest_version = mv
+    return latest_version

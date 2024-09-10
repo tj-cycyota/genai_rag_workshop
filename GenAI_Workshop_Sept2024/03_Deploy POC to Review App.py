@@ -56,7 +56,7 @@ w = WorkspaceClient()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Review our chain logic
+# MAGIC ## 1. Review our chain logic
 # MAGIC
 # MAGIC Open the Python file in the same directory with the file name below. This contains the `LangChain` logic for our POC RAG application.
 
@@ -67,7 +67,7 @@ CHAIN_CODE_FILE = "multi_turn_rag_chain"
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Spend a few minutes reviewing the code and how it uses configuration values from the `rag_chain_config.yaml` file (also in the same directory). The point of this exercise is not to become an expert on this particular chain framework, but rather to notice **how to tie together various components into a composable Compound AI system**. 
+# MAGIC Spend a few minutes reviewing the code and how it uses configuration values from the `rag_chain_config.yaml` file (also in the same directory). The point of this exercise is not to become an expert on this particular chain framework, but rather to notice **how to tie together various components into a composable Compound AI system**. Return to the next cell after you review.
 # MAGIC
 # MAGIC For further learning, we recommend the following articles:
 # MAGIC * [Create and log AI agents](https://docs.databricks.com/en/generative-ai/create-log-agent.html)
@@ -76,9 +76,9 @@ CHAIN_CODE_FILE = "multi_turn_rag_chain"
 
 # COMMAND ----------
 
-# MAGIC %md ## Log the chain to MLflow & test the RAG chain locally
+# MAGIC %md ## 2. Log the chain to MLflow & test the RAG chain locally
 # MAGIC
-# MAGIC This will save the chain using MLflow's code-based logging and invoke it locally to test it.  
+# MAGIC This will save the chain using MLflow's code-based logging and invoke it locally to test it. After you run the cell, inspect the hyperlinks to the MLflow `run` and `experiment` to see what the [MLflow Tracking Server](https://docs.databricks.com/en/machine-learning/track-model-development/index.html) is managing for you.
 
 # COMMAND ----------
 
@@ -103,7 +103,7 @@ with mlflow.start_run(run_name="poc_"+current_user_safe):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Test the chain locally
+# MAGIC ## 3. Test the chain locally
 # MAGIC
 # MAGIC We will load our model back using MLflow to test its behavior.
 # MAGIC
@@ -125,7 +125,7 @@ chain.invoke(chain_input)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Deploy to the Review App
+# MAGIC ## 4. Deploy to the Review App
 # MAGIC
 # MAGIC Now, let's deploy the POC to the Review App so your stakeholders can provide you feedback. We'll provide instructions to guide their review (the below can be customized to your use-case)
 # MAGIC
@@ -189,7 +189,3 @@ print(f"\n\nReview App: {deployment_info.review_app_url}")
 # MAGIC Once the Model Serving endpoint is ready (should take ~10-15 mins), go to the chat UI and ask questions about your document. You can then provide feedback/edits, which will be logged to the Inference Table and can be used in later sections for evaluation.
 # MAGIC
 # MAGIC If you have extra time in your lab, feel free to make edits to the chain logic and config file to affect the behavior and performance of your RAG application!
-
-# COMMAND ----------
-
-

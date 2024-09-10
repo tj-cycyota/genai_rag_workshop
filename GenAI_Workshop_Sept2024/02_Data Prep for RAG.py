@@ -74,8 +74,7 @@ if dbr_majorversion >= 14:
 # MAGIC ## 1. Load example PDF to a UC Volume
 # MAGIC
 # MAGIC This step can be done from the UI. 
-# MAGIC 1. In a new browser tab, navigate to: 
-# MAGIC * 
+# MAGIC 1. In a new browser tab, navigate to: https://h10032.www1.hp.com/ctg/Manual/c05048181.pdf
 # MAGIC
 # MAGIC 2. Download this PDF to your local laptop
 # MAGIC
@@ -199,7 +198,7 @@ display(parsed_df)
 # MAGIC
 # MAGIC If you expand the object in the `parsed_output` column from the last step, you will see we have a massive blob of raw text. 
 # MAGIC
-# MAGIC This is a relatively short document, so its not too long, but imagine if it were dozens or hundreds of pages long: it would be effectively unusable by an LLM, as every LLM has a maximum input length, and it is challenging for large language models to provide satisfactory responses when the prompt is too long. 
+# MAGIC Depending on which document you chose, it may be a relatively short block of text; but imagine if it were dozens or hundreds of pages long: it would be effectively unusable by an LLM, as every LLM has a maximum input length, and it is challenging for large language models to provide satisfactory responses when the prompt is too long. 
 # MAGIC
 # MAGIC So what should we do? **Chunk our documents**! This means splitting large blobs of text into shorter sections, which are usable by an LLM for question-answering. This approach is applicable to all kinds of documents (not just text-based ones): you can chunk large reference tables, mechanical diagrams, or really any kind of information you would find in a reference document. For our example, we'll stick with a straightforward approach and just break our big blob of text into smaller chunks, with some overlap between them. 
 # MAGIC
@@ -408,7 +407,9 @@ print(f"index {full_index_location} on table {full_table_location} is ready")
 # MAGIC %md
 # MAGIC ## 6. Test Vector Search Index 
 # MAGIC
-# MAGIC Our index provides us the ability to perform **similarity search**: given a string, it will retrieve the documents in our index that most closely match that string. Let's give it a try:
+# MAGIC Our index provides us the ability to perform **similarity search**: given a string, it will retrieve the documents in our index that most closely match that string. [databricks.vector_search SDK DOCs](https://api-docs.databricks.com/python/vector-search/databricks.vector_search.html#databricks.vector_search.index.VectorSearchIndex.similarity_search)
+# MAGIC
+# MAGIC Let's give it a try:
 
 # COMMAND ----------
 
@@ -436,3 +437,4 @@ docs
 # MAGIC **Have extra time?**
 # MAGIC * Review the `Chunking_Strategies` notebook in the `ExtraCredit` folder
 # MAGIC * Explore and test other chunking libraries such as unstructured.io
+# MAGIC * Try implementing the `score_threshold` for similarity search. [Docs](https://api-docs.databricks.com/python/vector-search/databricks.vector_search.html#databricks.vector_search.index.VectorSearchIndex.similarity_search)
