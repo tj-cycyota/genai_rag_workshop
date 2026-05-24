@@ -113,7 +113,7 @@ prompt = ChatPromptTemplate.from_messages(
             llm_config.get("llm_system_prompt_template"),
         ),
         # If there is history, provide it.
-        # Note: This chain does not compress the history, so very long converastions can overflow the context window.
+        # Note: This chain does not compress the history, so very long conversations can overflow the context window.
         MessagesPlaceholder(variable_name="formatted_chat_history"),
         # User's most current question
         ("user", "{question}"),
@@ -121,7 +121,7 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 
-# Format the converastion history to fit into the prompt template above.
+# Format the conversation history to fit into the prompt template above.
 def format_chat_history_for_prompt(chat_messages_array):
     history = extract_chat_history(chat_messages_array)
     formatted_chat_history = []
@@ -139,7 +139,7 @@ def format_chat_history_for_prompt(chat_messages_array):
 
 
 ############
-# Prompt Template for query rewriting to allow converastion history to work - this will translate a query such as "how does it work?" after a question such as "what is spark?" to "how does spark work?".
+# Prompt Template for query rewriting to allow conversation history to work - this will translate a query such as "how does it work?" after a question such as "what is spark?" to "how does spark work?".
 ############
 query_rewrite_template = """Based on the chat history below, we want you to generate a query for an external data source to retrieve relevant documents so that we can better answer the question. The query should be in natural language. The external data source uses similarity search to search for relevant documents in a vector space. So the query should be similar to the relevant documents semantically. Answer with only the query. Do not add explanation.
 
